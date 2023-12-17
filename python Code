@@ -1,0 +1,65 @@
+import speech_recognition as sr
+import pyttsx3
+import serial
+
+# Arduino Serial Connection
+arduino = serial.Serial('COM3', 9600)  # Replace 'COM3' with your Arduino port
+
+# Initialize Speech Recognition and Text-to-Speech Engines
+r = sr.Recognizer()
+engine = pyttsx3.init()
+
+# Configure Text-to-Speech Engine
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[0].id)  # Set the desired voice
+
+
+def listen():
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1
+        audio = r.listen(source)
+
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en')
+        print(f"You said: {query}")
+    except Exception as e:
+        print("Sorry, I didn't catch that. Could you please repeat?")
+        return ""
+
+    return query.lower()
+
+
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+
+def turn_on_led(led_number):
+    arduino.write(f"on{led_number}".encode())
+    print(f"Turned on LED {led_number}")
+
+
+def turn_off_led(led_number):
+    arduino.write(f"off{led_number}".encode())
+    print(f"Turned off LED {led_number}")
+
+
+# Jarvis Welcoming Message
+speak("Hi, sir! Jarvis here. You can control the LEDs using voice commands.")
+
+while True:
+    query = listen()
+
+    if "turn on" in query and any(str(i) in query for i in range(1, 6)):
+        for i in range(1, 6):
+            if str(i) in query:
+                turn_on_led(i)
+                speak(f"LED {i} turned on.")
+
+    elif "turn off" in query and any(str(i) in query for i in range(1, 6)):
+        for i in range(1, 6):
+            if str(i) in query:
+                turn_off_led(i)
+                speak(f"LED {i} turned off.")
